@@ -4,9 +4,9 @@ const fs = require('fs');
 
 // Ensure the uploads directory exists
 // const UPLOADS_DIR = './';
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+// if (!fs.existsSync(UPLOADS_DIR)) {
+//   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// }
 
 // Configure Multer storage
 const storage = multer.diskStorage({
