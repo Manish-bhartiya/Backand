@@ -2,11 +2,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Define the uploads directory
+const UPLOADS_DIR = path.join(__dirname, '../uploads');
+
 // Ensure the uploads directory exists
-// const UPLOADS_DIR = './';
-// if (!fs.existsSync(UPLOADS_DIR)) {
-//   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-// }
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 // Configure Multer storage
 const storage = multer.diskStorage({
@@ -29,4 +31,4 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-module.exports = multer({ storage, fileFilter }).single('file'); 
+module.exports = multer({ storage, fileFilter }).single('file');
