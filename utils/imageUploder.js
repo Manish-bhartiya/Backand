@@ -2,7 +2,6 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const dotenv = require('dotenv');
 
-// Initialize dotenv to read environment variables
 dotenv.config();
 
 cloudinary.config({
@@ -13,13 +12,16 @@ cloudinary.config({
 
 const cloudinaryUploader = async (filePath) => {
   try {
-    const result = await cloudinary.uploader.upload(filePath, {
-      resource_type: 'auto', // Automatically detects the file type
+    if (!fs.existsSync(filePath)) {
+      throw new Error('File does not exist');
+    }
+    const mimeType = filePath.split('.').pop().toLowerCase();
+    let resourceType = 'auto';
+
+    const result = await cloudinary.uploader.upload(filePath,{
+      resource_type: resourceType,
     });
-
-    // Safely delete the local file after successful upload
-    fs.unlinkSync(filePath);
-
+    console.log('Upload successful:', result);
     return { success: true, result };
   } catch (error) {
     console.error('Cloudinary upload error:', error.message);
