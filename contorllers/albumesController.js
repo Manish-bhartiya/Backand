@@ -1,54 +1,72 @@
 const Albums = require('../models/albums');
 const Songs = require("../models/songs");
+const cloudinaryUploader = require('../utils/imageUploder');
 
 // Function to create a new playlist
 const createAlbum = async (req, res) => {
   try {
-    const { name, image, songs } = req.body;
+    const { name, image } = req.body;
+    let songsData = req.body.songs;
 
     if (!name || !image) {
       return res.status(400).json({ message: "Name and image are required" });
     }
 
-    // Check if the album already exists
-    let existingAlbum = await Albums.findOne({ name });
-
-    if (existingAlbum) {
-      // If album exists, add the songs to it
-      const songDocs = await Songs.insertMany(songs || []);
-      const songIds = songDocs.map((song) => song._id);
-      
-      existingAlbum.songs.push(...songIds); // Add new songs to existing songs
-      await existingAlbum.save(); // Save the updated album
-      
-      return res.status(200).json({
-        message: "Songs added to existing album",
-        album: existingAlbum,
-      });
+    // Convert `songs` from JSON string (if necessary)
+    if (typeof songsData === "string") {
+      try {
+        songsData = JSON.parse(songsData);
+      } catch (error) {
+        return res.status(400).json({ message: "Invalid songs JSON", error: error.message });
+      }
     }
 
-    // If album doesn't exist, create a new one
-    const songDocs = await Songs.insertMany(songs || []);
+    // Check if an album with the same name exists
+    let existingAlbum = await Albums.findOne({ name });
+
+    // Upload each song's file to Cloudinary
+    for (let i = 0; i < songsData.length; i++) {
+      const file = req.files?.find((file) => file.fieldname === `songs[${i}][file]`);
+      
+      if (!file) {
+        return res.status(400).json({ message: `Missing file for song: ${songsData[i].name}` });
+      }
+
+      // Upload song file to Cloudinary
+      const { success, result, error } = await cloudinaryUploader(file.path);
+      if (!success) {
+        return res.status(500).json({ message: `Cloudinary upload error: ${error}` });
+      }
+
+      // Store the Cloudinary URL in the song object
+      songsData[i].url = result.secure_url;
+    }
+
+    // Save songs in the database
+    const songDocs = await Songs.insertMany(songsData);
     const songIds = songDocs.map((song) => song._id);
 
+    if (existingAlbum) {
+      // Add songs to existing album
+      existingAlbum.songs.push(...songIds);
+      await existingAlbum.save();
+      return res.status(200).json({ message: "Songs added to existing album", album: existingAlbum });
+    }
+
+    // Create a new album
     const newAlbum = await Albums.create({
       name,
       image,
       songs: songIds,
     });
 
-    res.status(201).json({
-      message: "Album created successfully",
-      album: newAlbum,
-    });
+    res.status(201).json({ message: "Album created successfully", album: newAlbum });
   } catch (error) {
-    console.error("Error creating or updating album:", error.message);
-    res.status(500).json({
-      message: "Error creating or updating album",
-      error: error.message,
-    });
+    console.error("Error creating album:", error.message);
+    res.status(500).json({ message: "Error creating album", error: error.message });
   }
 };
+
 
 
 const getAllAlbums = async (req, res) => {

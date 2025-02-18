@@ -6,4 +6,4 @@ const upload = multer({
   limits: { fileSize: 50000000 }
 });
 
-module.exports = upload.single('file');
+module.exports = upload.any('file');
